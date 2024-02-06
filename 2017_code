@@ -1,0 +1,52 @@
+```{r}
+library(sf)
+library(ggplot2)
+library(dplyr)
+
+#load in the bike routes first
+setwd("C:/Users/13157/Downloads/CitiBike_project/nyc_bikes")
+nyc_shape <- st_read("geo_export_bbe21116-30ae-47df-a002-919a94088bf7.shp")
+
+#This is already a spatial object (called SF objects in R), so we can go ahead and map it right away
+#Some data will need to be transformed to a spatial object with a coordinate reference system to be mapped
+ggplot()+
+  geom_sf(nyc_shape, mapping=aes())
+
+#Check the coordinate reference system (CRS) - this is using the WGS84 projection, which is pretty standard
+nyc_shape
+
+```
+```{r}
+#now load in NYC basemap
+setwd("C:/Users/13157/Downloads/CitiBike_project/nyctract_acs")
+nyc <- st_read("NYC_Tract_ACS2008_12.shp")
+#The CRS of both maps needs to match! We use EPSG codes to set the CRS. This one is the same CRS as the other map layer
+nyc <- st_set_crs(nyc, 'EPSG:4326')
+
+
+#Now we can map it
+ggplot()+
+  geom_sf(nyc, mapping=aes(), fill = "white")+
+  geom_sf(nyc_shape, mapping=aes(), color = "red")+
+  theme_minimal()
+```
+
+```{r}
+#We can also plot the City Bikes trip data! Let's load it in
+setwd("C:/Users/13157/Downloads/CitiBike_project")
+trip_data <- read.csv("201701-citibike-tripdata.csv")
+
+#get the data ready to map
+trip_data <- trip_data %>%  
+  filter(Start.Station.Longitude < 0) %>% 
+  #I need to transform my lat/long coordinates into an sf object 
+  st_as_sf(coords = c("Start.Station.Longitude", "Start.Station.Latitude"), crs = 4326)
+
+
+#map it!
+ggplot()+
+  geom_sf(nyc, mapping=aes(), fill = "white")+
+  geom_sf(nyc_shape, mapping=aes(), color = "red")+
+  geom_sf(trip_data, mapping=aes(), color = "blue")+
+  theme_minimal()
+```
