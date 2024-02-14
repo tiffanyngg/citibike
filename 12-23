@@ -1,0 +1,19 @@
+#We can also plot the City Bikes trip data! Let's load it in
+setwd("C:/Users/13157/Downloads/CitiBike_project")
+trip_data <- read.csv("202306-citibike-tripdata.csv")
+
+#get the data ready to map
+start_trip_data <- trip_data %>%  
+  filter(start_lng < 0) %>% 
+  #I need to transform my lat/long coordinates into an sf object 
+  st_as_sf(coords = c("start_lng", "start_lat"), crs = 4326)
+
+#map it!
+ggplot()+
+  geom_sf(nyc, mapping=aes(), fill = "white")+
+  geom_sf(nyc_shape, mapping=aes(), color = "red")+
+  geom_sf(start_trip_data, mapping=aes(), color = "blue")+
+  theme_minimal()
+
+# combine the census tract with the citibike data
+  citibike_with_tracts <- st_join(start_trip_data, nyc, join = st_intersects)
