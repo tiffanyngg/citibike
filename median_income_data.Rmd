@@ -1,0 +1,47 @@
+library(sf)
+library(ggplot2)
+library(dplyr)
+
+#set working directory to wherever the data is being stored
+setwd("/Users/tiff/Desktop/CITIBIKES")
+data <- read.csv("2021_NYC_INCOME_DATA(1).csv")
+
+#read shapefile
+nyc <- st_read("/Users/tiff/Desktop/CITIBIKES/nyc_shapefile")
+summary(nyc)
+nyc <- st_set_crs(nyc, 'EPSG:4326')
+
+#isolates Brooklyn median income data and generates a scale gradient map based on results
+bk <- nyc %>%
+  filter(boroname == "Brooklyn")
+ggplot()+
+  geom_sf(bk, mapping=aes(fill=as.numeric(medianinco)), color = "gray", show.legend=FALSE)+
+  scale_fill_gradient(low="white", high="orchid", na.value="gray")+
+  theme_minimal()
+
+#Manhattan map
+mh <- nyc %>% 
+  filter(boroname== "Manhattan")
+ggplot()+
+  geom_sf(mh, mapping=aes(fill=as.numeric(medianinco)), color = "gray", show.legend=FALSE)+
+  scale_fill_gradient(low="white", high="orchid", na.value="gray")+
+  theme_minimal()
+
+#Bronx map
+bx <- nyc %>% 
+  filter(boroname== "Bronx")
+ggplot()+
+  geom_sf(bx, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
+  scale_fill_gradient(low="white", high="orchid", na.value="gray")+
+  theme_minimal()
+
+#Queens map
+qs <- nyc %>%
+  filter(boroname=="Queens")
+ggplot()+
+  geom_sf(qs, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
+  scale_fill_gradient(low="white", high="orchid", na.value="gray")+
+  theme_minimal()
+
+
+
