@@ -1,0 +1,153 @@
+---
+title: "Mapping City Bike Routes in NYC"
+output: html_notebook
+---
+Used Dr.Haller's code to transform data into an sf object. Then combined the citibike and census tract data.
+Plans:
+- Map where the stations are located on top of the percentage of black/hispanic nyc residents
+- Map where the stations are located on top of the percentage of poor areas of nyc
+  - median income
+  - median house value
+  - unemployment rate
+  - population over 18
+  - median age male vs median age female
+- Map where color coordinate who is a member and who is not in these areas as well
+- Which boroughs are the most accessible? 
+
+```{r}
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+
+#load in the bike routes first
+setwd("C:/Users/13157/Downloads/CitiBike_project/nyc_bikes")
+nyc_shape <- st_read("geo_export_bbe21116-30ae-47df-a002-919a94088bf7.shp")
+
+#This is already a spatial object (called SF objects in R), so we can go ahead and map it right away
+#Some data will need to be transformed to a spatial object with a coordinate reference system to be mapped
+#ggplot()+
+  #geom_sf(nyc_shape, mapping=aes())
+
+#Check the coordinate reference system (CRS) - this is using the WGS84 projection, which is pretty standard
+nyc_shape
+
+```
+```{r}
+setwd("C:/Users/13157/Downloads/CitiBike_project/Borough_Boundaries")
+nyc_boro <- st_read("geo_export_4e5aa31d-3ac8-4a6f-9077-d75efb6b0232.shp")
+
+# Plot the bike routes and boroughs
+ggplot() +
+  geom_sf(data = nyc_shape, color = "red") + # Plot bike routes
+  geom_sf(data = nyc_boro, fill = "transparent", color = "black", lwd = 1) + # Plot boroughs
+  theme_minimal()
+
+nyc_boro 
+```
+
+```{r}
+#now load in NYC basemap
+setwd("C:/Users/13157/Downloads/CitiBike_project/nyctract_acs")
+nyc <- st_read("NYC_Tract_ACS2008_12.shp")
+#The CRS of both maps needs to match! We use EPSG codes to set the CRS. This one is the same CRS as the other map layer
+nyc <- st_set_crs(nyc, 'EPSG:4326')
+
+
+#Now we can map it
+#ggplot() +
+  #geom_sf(nyc, mapping=aes(), fill = "white") +
+  #geom_sf(data = nyc_shape, color = "red") + # Plot bike routes
+  #geom_sf(data = nyc_boro, fill = "transparent", color = "black", lwd = 1) + # Plot boroughs
+  #theme_minimal()
+
+nyc
+```
+
+```{r}
+#We can also plot the City Bikes trip data! Let's load it in
+setwd("C:/Users/13157/Downloads/CitiBike_project")
+trip_data <- read.csv("202306-citibike-tripdata.csv")
+
+#get the data ready to map
+#trip_data <- trip_data %>%  
+  #filter(start_lng < 0) %>% 
+  #I need to transform my lat/long coordinates into an sf object 
+  #st_as_sf(coords = c("start_lng", "start_lat"), crs = 4326)
+```
+
+```{r}
+# we need to group the stations by where the points are in each census tract
+
+# using tutorial from https://rstudio-pubs-static.s3.amazonaws.com/1113537_5c12778f1092412cbe4913b82618da98.html
+
+citi_lat_lng_6_23 <- trip_data %>% select(c("start_lat","start_lng")) 
+```
+
+```{r}
+
+write.csv(citi_lat_lng_6_23, file = "C:/Users/13157/Downloads/CitiBike_project/citi_lat_lng_6_23.csv", row.names = FALSE)
+ # save as csv so we don't have to keep loading in the entire dataset, save file path 
+```
+
+```{r}
+# load in citi lat long from 6/23 now
+
+setwd("C:/Users/13157/Downloads/CitiBike_project")
+
+citi_lat_lng_6_23 <- read.csv("citi_lat_lng_6_23.csv")
+```
+
+
+```{r}
+
+citi_points <- st_as_sf(citi_lat_lng_6_23, coords = c("start_lng", "start_lat")) # convert citi bike lat/long into sf object points
+
+st_crs(citi_points) <- st_crs(nyc) # set crs same as nyc census tract
+
+```
+
+```{r}
+citi_points
+```
+
+
+```{r}
+#takes a long time to load, be patient
+
+citi_nyc_joined <- st_join(citi_points, nyc, join = st_within) # join citi bike points with census tract
+```
+
+
+```{r}
+# count how many points are in each tract
+
+census_tract_points_count <- count(as_tibble(citi_nyc_joined), tractid) %>%
+                                   arrange(desc(n)) %>% print()
+
+```
+
+```{r}
+# spatial join nyc and census tract points count 
+spatial_count_result <- left_join(nyc, census_tract_points_count, by = c("tractid" = "tractid"))
+```
+
+```{r}
+# save the result as a shapefile, change to your own directory
+
+st_write(spatial_count_result, "C:/Users/13157/Downloads/CitiBike_project/spatial_citibike_count_result.shp")
+```
+
+```{r}
+# remember "n" is the number of people who used a station within that census tract
+library(mapview)
+mapview(spatial_count_result, zcol = "n", layer.name = "african")
+```
+
+
+
+
+
+
+
+
