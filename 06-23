@@ -1,19 +1,70 @@
+```{r}
+library(sf)
+library(ggplot2)
+library(dplyr)
+
+#load in the bike routes first
+setwd("C:/Users/13157/Downloads/CitiBike_project/nyc_bikes")
+nyc_shape <- st_read("geo_export_bbe21116-30ae-47df-a002-919a94088bf7.shp")
+
+#This is already a spatial object (called SF objects in R), so we can go ahead and map it right away
+#Some data will need to be transformed to a spatial object with a coordinate reference system to be mapped
+ggplot()+
+  geom_sf(nyc_shape, mapping=aes())
+
+#Check the coordinate reference system (CRS) - this is using the WGS84 projection, which is pretty standard
+nyc_shape
+
+```
+
+```{r}
+setwd("C:/Users/13157/Downloads/CitiBike_project/Borough_Boundaries")
+nyc_boro <- st_read("geo_export_4e5aa31d-3ac8-4a6f-9077-d75efb6b0232.shp")
+
+# Plot the bike routes and boroughs
+ggplot() +
+  geom_sf(data = nyc_shape, color = "red") + # Plot bike routes
+  geom_sf(data = nyc_boro, fill = "transparent", color = "black", lwd = 1) + # Plot boroughs
+  theme_minimal()
+
+nyc_boro
+```
+
+```{r}
+#now load in NYC basemap
+setwd("C:/Users/13157/Downloads/CitiBike_project/nyctract_acs")
+nyc <- st_read("NYC_Tract_ACS2008_12.shp")
+#The CRS of both maps needs to match! We use EPSG codes to set the CRS. This one is the same CRS as the other map layer
+nyc <- st_set_crs(nyc, 'EPSG:4326')
+
+
+#Now we can map it
+ggplot() +
+  geom_sf(nyc, mapping=aes(), fill = "white") +
+  geom_sf(data = nyc_shape, color = "red") + # Plot bike routes
+  geom_sf(data = nyc_boro, fill = "transparent", color = "black", lwd = 1) + # Plot boroughs
+  theme_minimal()
+```
+
+```{r}
 #We can also plot the City Bikes trip data! Let's load it in
 setwd("C:/Users/13157/Downloads/CitiBike_project")
 trip_data <- read.csv("202306-citibike-tripdata.csv")
 
 #get the data ready to map
-start_trip_data <- trip_data %>%  
+trip_data <- trip_data %>%  
   filter(start_lng < 0) %>% 
   #I need to transform my lat/long coordinates into an sf object 
   st_as_sf(coords = c("start_lng", "start_lat"), crs = 4326)
 
 #map it!
-ggplot()+
-  geom_sf(nyc, mapping=aes(), fill = "white")+
-  geom_sf(nyc_shape, mapping=aes(), color = "red")+
-  geom_sf(start_trip_data, mapping=aes(), color = "blue")+
+ggplot() +
+  geom_sf(nyc, fill = "white") +
+  geom_sf(data = nyc_shape, aes(color = "Bike Routes")) + # Plot bike routes
+  geom_sf(data = nyc_boro, fill = "transparent", color = "black", lwd = 1) + # Plot boroughs
+  geom_sf(data = trip_data, aes(color = "Docking Stations")) + # Plot docking stations
+  scale_color_manual(values = c("Bike Routes" = "red", "Docking Stations" = "blue"), 
+                     labels = c("Bike Routes", "Docking Stations")) +
+  labs(color = "Legend") + # Legend title
   theme_minimal()
-
-# combine the census tract with the citibike data
-  citibike_with_tracts <- st_join(start_trip_data, nyc, join = st_intersects)
+```
