@@ -13,14 +13,6 @@ import seaborn as sns
 
 citibike = pd.read_csv("201306-citibike-tripdata.csv")
 
-citibike
-
-citibike['tripduration'] = citibike['tripduration'].astype("string")
-
-print(citibike.dtypes)
-
-import pandas as pd
-
 # Read the dataset from CSV file
 df = citibike
 
