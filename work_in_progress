@@ -29,15 +29,15 @@ ggplot()+
 #ARGUMENT: HIGH MEDIANINCO AREAS WILL HAVE MORE CITIBIKE STATIONS
 
 #LOAD IN CITIBIKE DATA 
-#TIMEFRAME: JANUARY 2023 - WEEK 1 
+#TIMEFRAME: JANUARY 2023 
 setwd("/Users/tiff/Desktop/CITIBIKES")
-trip_data <- read.csv("202301-citibike-tripdata.csv")
+trip_data <- read.csv("202301-citibike-tripdata.csv") 
 head(trip_data)
 
+#TAKES TRIP DATA FROM WEEK 1: JAN 1 - JAN 8
+#NOTE: HAVEN'T BEEN ABLE TO USE WEEK1 BECAUSE THE CSV FILES HAVE CHANGED
 trip_data <- trip_data %>%
   mutate(started_at = as.POSIXct(started_at, format = "%Y-%m-%d %H:%M:%S"))
-
-#TAKES TRIP DATA FROM WEEK 1: JAN 1 - JAN 8
 week1 <- trip_data %>%
   filter(started_at >= as.POSIXct("2023-01-01 00:00:00") & started_at < as.POSIXct("2023-01-08 00:00:00"))
 
@@ -73,8 +73,6 @@ head(bk_geo)
   geom_sf(data = bk_week1, color="#66CC99", alpha=(1/254.99)*3)+
   theme_minimal()
  
- #BAR GRAPH: MEDIANINCO VS COUNT
- 
  #BK
  bk <- nyc %>%
    filter(boroname == "Brooklyn") %>%
@@ -93,11 +91,6 @@ head(mh)
 #ymin = 40.68292
 #xmax: -73.97597
 #ymax: 40.7147
- 
- #GIVES COUNT VS GEOMETRY POINT
- bk_counts <- bk %>%
-   select(count)
- head(bk_counts)
 
 #PLOTTING MEDIANINCO VS STARTING STATION IN NYC 
  ggplot() +
@@ -107,8 +100,77 @@ head(mh)
   geom_sf(data = week1, color="#66CC99", alpha=(1/254.99)*3)+
   theme_minimal()
 
-#REARRANGING WEEK1 
-station_ids <- week1 %>%
+#REARRANGING TRIP_DATA STATION_IDS
+#PURPOSE: FIND CORRELATION BETWEEN STATION_IDS AND BOROUGH NAMES 
+#GOAL: TO GRAPH #OF STATIONS IN EACH 
+#REALIZATION: THERE'S NO PARTICULAR PATTERN IN NAMING THE STATION_IDS AND AREN'T INCREMENTING BY A CERTAIN NUMBER
+station_ids1 <- trip_data %>%
   select(start_station_id) 
-head(station_ids)
-typeof(station_ids) #TYPE: list
+summary(station_ids1)
+summary(as.numeric(unlist(station_ids1)))
+#Min. 2733
+#1st Qu. 5291
+#Median 6022
+#Mean 3rd Qu. 5965
+#Max. 8841
+#NA's 68
+
+#APPROACH 02
+bk <- nyc %>%
+  filter(boroname =="Brooklyn") %>%
+  select(count)
+summary(bk)
+#Min. : 0
+#1st Qu. : 0
+#Median : 0
+#Mean : 320.5
+#3rd Qu. : 0
+#Max : 14305
+
+mh <- nyc %>%
+  filter(boroname == "Manhattan") %>%
+  select(count)
+summary(mh)
+#Min. : 0
+#1st Qu. : 0
+#Median : 0
+#Mean : 2355
+#3rd Qu. : 0
+#Max : 33079
+
+bx <- nyc %>%
+  filter(boroname == "Bronx") %>%
+  select(count)
+summary(bx)
+#Min. : 0
+#1st Qu. : 0
+#Median : 0
+#Mean : 80.71
+#3rd Qu. : 0
+#Max : 2471.00
+
+qs <- nyc %>%
+  filter(boroname == "Queens") %>%
+  select(count)
+summary(qs)
+#Min. : 0
+#1st Qu. : 0
+#Median : 0
+#Mean : 93.67
+#3rd Qu. : 0
+#Max : 8945
+
+#PLOTTING BAR GRAPH OF THE MEAN NUMBER OF TRIPS STARTED WITHIN EACH BOROUGH IN JAN 2023
+boroughs <- data.frame(value = c("Bronx", "Queens", "Brooklyn", "Manhattan"))
+mean_count <- data.frame(value = c(80.71, 93.67, 320.5, 2355))
+data <- data.frame(
+  Boroughs=c("Bronx", "Queens", "Brooklyn", "Manhattan") ,  
+  Mean=c(80.71, 93.67, 320.5, 2355)
+  )
+
+#GOAL: RETRIEVE THE MEAN OF THE MEDIANINCO VALUES FOR EACH BOROUGH
+#NOTE: NOT WORKING BECAUSE EACH ELEMENT IN BX_INCO IS A LIST
+bx_inco <- nyc %>%
+  filter(boroname == "Bronx") %>%
+  select(medianinco)
+summary(as.numeric(unlist(bx_inco)))
