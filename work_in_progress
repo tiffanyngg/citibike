@@ -17,9 +17,7 @@ ggplot() +
   theme_minimal()
 
 nyc #NYC CENSUSTRACT DETAILS
-```
 
-```{r}
 #MEDIANINCO IN NYC
 ggplot()+
   geom_sf(nyc, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
@@ -39,14 +37,67 @@ head(trip_data)
 trip_data <- trip_data %>%
   mutate(started_at = as.POSIXct(started_at, format = "%Y-%m-%d %H:%M:%S"))
 
+#TAKES TRIP DATA FROM WEEK 1: JAN 1 - JAN 8
 week1 <- trip_data %>%
   filter(started_at >= as.POSIXct("2023-01-01 00:00:00") & started_at < as.POSIXct("2023-01-08 00:00:00"))
 
-#TRANSFORMING LAT/LONG COORDINATES INTO SF OBJECTS
+#TRANSFORMING LAT/LONG COORDINATES FROM CITIBIKE DATA INTO SF OBJECTS
 week1 <- week1 %>%  
   filter(start_lng < 0) %>% 
   st_as_sf(coords = c("start_lng", "start_lat"), crs = 4326)
 head(week1)
+typeof(week1) #TYPE: List
+
+#THIS KEEPS COUNT OF HOW MANY BIKES WERE USED AT EACH START STATION
+nyc$count <- lengths(st_intersects(nyc, week1))
+head(nyc)
+
+#RETRIEVING ALL GEOMETRY POINTS FROM WEEK 1
+week1_geo <- week1 %>%
+  select(geometry)
+head(week1_geo)
+typeof(week1_geo) #TYPE: list
+
+ 
+#FILTERS OUT GEOMETRY POINTS IN BROOKLYN DATA FROM CENSUS TRACT
+bk_geo <- nyc %>%
+  filter(boroname=="Brooklyn") %>%
+  select(geometry)
+head(bk_geo)
+
+#RETRIVES GEOMETRY POINTS FOR BROOKLYN ONLY
+ ggplot()+
+  geom_sf(data = bk, fill = "white", color = "black") +
+  geom_sf(bk, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
+  scale_fill_gradient(low="#64b5fa", high="#013663", na.value="gray")+
+  geom_sf(data = bk_week1, color="#66CC99", alpha=(1/254.99)*3)+
+  theme_minimal()
+ 
+ #BAR GRAPH: MEDIANINCO VS COUNT
+ 
+ #BK
+ bk <- nyc %>%
+   filter(boroname == "Brooklyn") %>%
+   select(geometry)
+ head(bk)
+ #xmin: -74.01518
+ #ymin: 40.64926
+ #xmax: -73.99067
+ #ymax: 40.70313
+ 
+mh <- nyc %>%
+  filter(boroname == "Manhattan") %>%
+  select(geometry)
+head(mh)
+#xmin = -74.04773
+#ymin = 40.68292
+#xmax: -73.97597
+#ymax: 40.7147
+ 
+ #GIVES COUNT VS GEOMETRY POINT
+ bk_counts <- bk %>%
+   select(count)
+ head(bk_counts)
 
 #PLOTTING MEDIANINCO VS STARTING STATION IN NYC 
  ggplot() +
@@ -55,34 +106,9 @@ head(week1)
   scale_fill_gradient(low="#64b5fa", high="#013663", na.value="gray")+
   geom_sf(data = week1, color="#66CC99", alpha=(1/254.99)*3)+
   theme_minimal()
- 
- #MEDIANINCO VS STARTING STATION PER BOROUGH
- 
- #FILTERS OUT ONLY BROOKLYN DATA FROM CENSUS TRACT
-bk <- nyc %>%
-  filter(boroname=="Brooklyn")
-summary(bk)
- 
- #WITHIN WEEK 1 DATA FIND BROOKLYN STATIONS
- bk_week1 <- bk %>%
-   bk[[geometry]]
- head(bk_week1)
- 
- ggplot()+
-  geom_sf(data = bk, fill = "white", color = "black") +
-  geom_sf(bk, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
-  scale_fill_gradient(low="#64b5fa", high="#013663", na.value="gray")+
-  geom_sf(data = bk_week1, color="#66CC99", alpha=(1/254.99)*3)+
-  theme_minimal()
 
-#FOR LOOP FOR APPENDING BK GEOMETRY POINTS
-
-
-bk_w1_geo <- list()
-for(w1 in week1_geo){
-  for(bk1 in bk_geo){
-    if(w1){
-      append(bk_w1_geo, w1)
-    }
-  }
-}
+#REARRANGING WEEK1 
+station_ids <- week1 %>%
+  select(start_station_id) 
+head(station_ids)
+typeof(station_ids) #TYPE: list
