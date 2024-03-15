@@ -1,0 +1,119 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+#LIBRARIES
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(tidycensus)
+
+#LOADING IN NYC BASEMAP
+setwd("/Users/tiff/Desktop/CITIBIKES")
+nyc <- st_read("/Users/tiff/Desktop/CITIBIKES/nyc_shapefile")
+nyc <- st_set_crs(nyc, 'EPSG:4326')
+nyc <- nyc %>%
+  filter(boroname != "Staten Island")
+
+nyc #NYC CENSUSTRACT DETAILS
+
+#TESTING TIDYCENSUS
+nyc_income <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = c("New York", "Kings", "Queens", "Bronx"),
+  year = 2020,
+  geometry = TRUE
+)
+head(nyc_income)
+
+bx <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = "Bronx",
+  year = 2020,
+  geometry = TRUE
+)
+summary(bx)
+
+bk <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = "Kings",
+  year = 2020,
+  geometry = TRUE
+)
+summary(bk)
+
+qn <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = "Queens",
+  year = 2020,
+  geometry = TRUE
+)
+summary(qn)
+
+mh <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = "New York",
+  year = 2020,
+  geometry = TRUE
+)
+summary(mh)
+
+
+data <- data.frame(
+  Boroughs=c("Bronx", "Queens", "Brooklyn", "Manhattan"),  
+  Mean=c(47615, 77123, 71143,104136)
+  )
+
+ggplot(data, aes(x=Boroughs, y=Mean, fill=Mean))+
+  geom_bar(stat="Identity")+
+  labs(title = "Mean Income per Borough (2020)",
+       y="Mean Income", x="Borough")
+
+ggplot(nyc_income, aes(fill = estimate)) + 
+  geom_(data = trip, color="red", alpha=(1/254.99)*3) + 
+  theme_void() + 
+  scale_fill_viridis_c(labels = scales::dollar)
+
+tract_nyc_income <- nyc %>% 
+  select(medianinco)
+head(tract_nyc_income)
+
+ggplot(tract_nyc_income, aes(fill = as.numeric(medianinco))) + 
+  geom_sf() + 
+  theme_void() + 
+  scale_fill_viridis_c(labels = scales::dollar)
+
+#LOADING IN CITIBIKE DATA
+setwd("/Users/tiff/Desktop/CITIBIKES")
+trip_data <- read.csv("202301-citibike-tripdata.csv") 
+head(trip_data)
+
+#TRANSFORMING LAT/LONG COORDINATES FROM CITIBIKE DATA INTO SF OBJECTS
+trip <- trip_data %>%  
+  filter(start_lng < 0) %>% 
+  st_as_sf(coords = c("start_lng", "start_lat"), crs = 4326)
+head(trip)
+
+ ggplot() +
+  geom_sf(data = nyc, fill = "white", color = "black") +
+  geom_sf(nyc, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
+  scale_fill_gradient(low="#64b5fa", high="#013663", na.value="gray")+
+  geom_sf(data = trip, color="red", alpha=(1/254.99)*3)+
+  theme_void()
+```
+
+
+
