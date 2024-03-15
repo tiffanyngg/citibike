@@ -1,0 +1,88 @@
+#LIBRARIES
+library(sf)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+
+#LOADING IN NYC BASEMAP
+setwd("/Users/tiff/Desktop/CITIBIKES")
+nyc <- st_read("/Users/tiff/Desktop/CITIBIKES/nyc_shapefile")
+nyc <- st_set_crs(nyc, 'EPSG:4326')
+nyc <- nyc %>%
+  filter(boroname != "Staten Island")
+
+#MAP OF NYC (EXCLUDING STATEN ISLAND)
+ggplot() +
+  geom_sf(data = nyc, fill = "white", color = "black") +
+  theme_minimal()
+
+nyc #NYC CENSUSTRACT DETAILS
+```
+
+```{r}
+#MEDIANINCO IN NYC
+ggplot()+
+  geom_sf(nyc, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
+  scale_fill_gradient(low="white", high="orchid", na.value="gray")+
+  theme_minimal()+
+  labs(fill="Median Income ($)", title="Median Income in NYC")
+
+#NEXT GOAL: MEDIANINCO VS ACCESSIBLE CITIBIKE STATIONS
+#ARGUMENT: HIGH MEDIANINCO AREAS WILL HAVE MORE CITIBIKE STATIONS
+
+#LOAD IN CITIBIKE DATA 
+#TIMEFRAME: JANUARY 2023 - WEEK 1 
+setwd("/Users/tiff/Desktop/CITIBIKES")
+trip_data <- read.csv("202301-citibike-tripdata.csv")
+head(trip_data)
+
+trip_data <- trip_data %>%
+  mutate(started_at = as.POSIXct(started_at, format = "%Y-%m-%d %H:%M:%S"))
+
+week1 <- trip_data %>%
+  filter(started_at >= as.POSIXct("2023-01-01 00:00:00") & started_at < as.POSIXct("2023-01-08 00:00:00"))
+
+#TRANSFORMING LAT/LONG COORDINATES INTO SF OBJECTS
+week1 <- week1 %>%  
+  filter(start_lng < 0) %>% 
+  st_as_sf(coords = c("start_lng", "start_lat"), crs = 4326)
+head(week1)
+
+#PLOTTING MEDIANINCO VS STARTING STATION IN NYC 
+ ggplot() +
+  geom_sf(data = nyc, fill = "white", color = "black") +
+  geom_sf(nyc, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
+  scale_fill_gradient(low="#64b5fa", high="#013663", na.value="gray")+
+  geom_sf(data = week1, color="#66CC99", alpha=(1/254.99)*3)+
+  theme_minimal()
+ 
+ #MEDIANINCO VS STARTING STATION PER BOROUGH
+ 
+ #FILTERS OUT ONLY BROOKLYN DATA FROM CENSUS TRACT
+bk <- nyc %>%
+  filter(boroname=="Brooklyn")
+summary(bk)
+ 
+ #WITHIN WEEK 1 DATA FIND BROOKLYN STATIONS
+ bk_week1 <- bk %>%
+   bk[[geometry]]
+ head(bk_week1)
+ 
+ ggplot()+
+  geom_sf(data = bk, fill = "white", color = "black") +
+  geom_sf(bk, mapping=aes(fill=as.numeric(medianinco)), color = "gray")+
+  scale_fill_gradient(low="#64b5fa", high="#013663", na.value="gray")+
+  geom_sf(data = bk_week1, color="#66CC99", alpha=(1/254.99)*3)+
+  theme_minimal()
+
+#FOR LOOP FOR APPENDING BK GEOMETRY POINTS
+
+
+bk_w1_geo <- list()
+for(w1 in week1_geo){
+  for(bk1 in bk_geo){
+    if(w1){
+      append(bk_w1_geo, w1)
+    }
+  }
+}
