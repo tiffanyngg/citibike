@@ -120,44 +120,28 @@ bk <- nyc %>%
   filter(boroname =="Brooklyn") %>%
   select(count)
 summary(bk)
-#Min. : 0
-#1st Qu. : 0
-#Median : 0
 #Mean : 320.5
-#3rd Qu. : 0
 #Max : 14305
 
 mh <- nyc %>%
   filter(boroname == "Manhattan") %>%
   select(count)
 summary(mh)
-#Min. : 0
-#1st Qu. : 0
-#Median : 0
 #Mean : 2355
-#3rd Qu. : 0
 #Max : 33079
 
 bx <- nyc %>%
   filter(boroname == "Bronx") %>%
   select(count)
 summary(bx)
-#Min. : 0
-#1st Qu. : 0
-#Median : 0
 #Mean : 80.71
-#3rd Qu. : 0
 #Max : 2471.00
 
 qs <- nyc %>%
   filter(boroname == "Queens") %>%
   select(count)
 summary(qs)
-#Min. : 0
-#1st Qu. : 0
-#Median : 0
 #Mean : 93.67
-#3rd Qu. : 0
 #Max : 8945
 
 #PLOTTING BAR GRAPH OF THE MEAN NUMBER OF TRIPS STARTED WITHIN EACH BOROUGH IN JAN 2023
