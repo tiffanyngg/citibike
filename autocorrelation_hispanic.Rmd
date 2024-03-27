@@ -1,0 +1,91 @@
+---
+title: "Hispanic Autocorrelation"
+output: html_notebook
+---
+```{r}
+library(spdep)
+library(sf)     
+library(dplyr)   
+library(spData) 
+library(ggplot2)
+library(ggthemes)
+setwd("C:\\Users\\laure\\OneDrive\\Desktop\\DIDA 425 Project\\nyc_shapefile")
+```
+```{r}
+nyc <- st_read("NYC_Tract_ACS2008_12.shp")
+```
+```{r}
+ggplot()+
+  geom_sf(data = nyc, aes(fill=hispanic))+
+  scale_fill_steps(
+    name = "Hispanic Households",
+    low = "lightsteelblue1",
+    high = "tomato1",
+    n.breaks = 4,
+    show.limits = T)+
+  theme_void()
+```
+```{r}
+nyc_list <- nyc %>% 
+  #first convert polygons to a neighbor object
+  #R needs to know a unique ID for each neighborhood    
+  #(cartodb_id)
+  #Neighbors determined using Queen weights
+  poly2nb(st_geometry(nyc)) %>% 
+  #zero.policy just tells R not to remove 0 values
+  nb2listw(zero.policy = TRUE)
+```
+
+```{r}
+nyc_list %>% 
+  moran.test(nyc$hispanic, ., zero.policy = TRUE)
+```
+The Moran statistic of .461 and a p value < 0.001 indicates a rejection of the null hypothesis.
+This data was not generated using a spatially randomized process
+```{r}
+moran.plot(nyc$hispanic, 
+           nyc_list, 
+           zero.policy = TRUE, 
+           labels = F,
+           xlab = 'Number of Hispanic Households',
+           ylab = 'Lagged Hispanic Households (of Neighbors)',
+                   pch=20)
+```
+There is a positive relationship between the number of Hispanic Households and Hispanic Neighbors.
+Areas with high numbers of Hispanic households tend to be near other areas with high numbers of Hispanic households
+
+```{r}
+lisaRslt <- localmoran(nyc$hispanic, nyc_list, 
+            zero.policy = TRUE, na.action = na.omit)
+head(lisaRslt)
+```
+```{r}
+library(magrittr)
+library(tidyr)
+significanceLevel <- 0.05; # 95% confidence
+meanVal <- mean(nyc$hispanic);
+
+lisaRslt %<>% as_tibble() %>%
+  set_colnames(c("Ii","E.Ii","Var.Ii","Z.Ii","Pr(z > 0)")) %>%
+  #Create a new categorical value
+  #This variable will call insignificant units "insignificant"
+  #Outliers are determined by LI <0 - units higher than the mean are HL and units lower than the mean are LH
+  #Clusters are units with LI >= 0, and classified as HH or LL based on whether they are above or below the mean
+  mutate(coType = case_when(
+  `Pr(z > 0)` > 0.05 ~ "Insignificant",
+  `Pr(z > 0)` <= 0.05 & Ii >= 0 & nyc$hispanic >= meanVal ~ "HH",
+  `Pr(z > 0)` <= 0.05 & Ii >= 0 & nyc$hispanic < meanVal ~ "LL",
+  `Pr(z > 0)` <= 0.05 & Ii < 0 & nyc$hispanic >= meanVal ~ "HL",
+  `Pr(z > 0)` <= 0.05 & Ii < 0 & nyc$hispanic < meanVal ~ "LH"))
+
+# Now add this coType to original sf data
+nyc$coType <- lisaRslt$coType %>% replace_na("Insignificant")
+
+#Now we'll plot it!
+ggplot(nyc) +
+  geom_sf(aes(fill=coType),color = 'lightgrey') +
+  scale_fill_manual(values = c('red','NA','blue','cyan'), name='Clusters & \nOutliers') +
+  labs(title = "Number of Hispanic Families by Neighborhood")+
+  theme_minimal()
+```
+
