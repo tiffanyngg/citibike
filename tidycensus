@@ -1,9 +1,3 @@
----
-title: "R Notebook"
-output: html_notebook
----
-
-```{r}
 #LIBRARIES
 library(sf)
 library(ggplot2)
@@ -83,7 +77,7 @@ ggplot(data, aes(x=Boroughs, y=Mean, fill=Mean))+
        y="Mean Income", x="Borough")
 
 ggplot(nyc_income, aes(fill = estimate)) + 
-  geom_(data = trip, color="red", alpha=(1/254.99)*3) + 
+  geom_sf(data = trip, color="red", alpha=(1/254.99)*3) + 
   theme_void() + 
   scale_fill_viridis_c(labels = scales::dollar)
 
@@ -114,6 +108,409 @@ head(trip)
   geom_sf(data = trip, color="red", alpha=(1/254.99)*3)+
   theme_void()
 ```
+#RACE BK
+racevars <- c(White = "P2_005N",
+              Black = "P2_005N",
+              Asian = "P2_005N",
+              Hispanic = "P2_005N")
+
+bk_race <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "NY",
+  county = "Kings",
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020,
+  sumfile = "pl"
+) 
+
+head(bk_race)
+```
+```{r}
+#LOADING IN CITIBIKE DATA
+
+setwd("/Users/tiff/Desktop/CITIBIKES")
+
+#TIMEFRAME: JANUARY 2023 
+jan_data <- read.csv("202301-citibike-tripdata.csv") 
+jan_members <- unique(jan_data$ride_id)
+write.csv(jan_members, "unique_members.csv")
+
+#TIMEFRAME: FEBRUARY 2023
+feb_data <- read.csv("202302-citibike-tripdata_1.csv")
+feb_members <- unique(feb_data$ride_id)
+write.csv(feb_members, "unique_members.csv")
+```
+```{r}
+racevars <- c(White = "P2_005N", 
+              Black = "P2_006N", 
+              Asian = "P2_008N", 
+              Hispanic = "P2_002N")
+
+bk <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "NY",
+  county = "Kings",
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020
+) 
+head(bk)
+
+bx <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "NY",
+  county = "Bronx",
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020
+) 
+
+bx_white <- bx %>%
+  filter(variable == "White")
+head(bx_white)
+bx_black <- bx %>%
+  filter(variable == "Black")
+bx_asian <- bx %>%
+  filter(variable == "Asian")
+bx_hispanic <- bx %>%
+  filter(variable == "Hispanic")
+
+ggplot(data = nyc_black_pop, aes(fill = value)) + 
+  geom_sf()
+
+bx_data <- c(bx_income, bx_white, bx_asian, bx_black, bx_hispanic)
+head(bx_data)
+
+bx_df <- data.frame(
+  bx_data
+)
+head(bx_df)
+
+library(dplyr)
+library(kableExtra)
+library(corrplot)
+corr_data <- bx_df %>%
+  select(c(estimate, percent, percent.1, percent.2, percent.3))
+head(corr_data)
+corr_table <- cor(corr_data, y=  NULL, use = "na.or.complete", method="kendall")
+
+corr_table
+corr_table %>%
+  kbl(align = "c") %>%
+  kable_paper("striped", full_width = F) 
+
+#creates correlation table with the data calculated from above 
+corrplot(corr_table, tl.cex = 1, cl.cex = 0.5)
+
+nyc <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "NY",
+  county = c("Bronx", "Kings", "Queens", "New York"),
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020
+) 
+head(nyc)
+
+nyc_black_pop <- nyc %>%
+  filter(variable == "Black")
+```
+
+```{r}
+bx <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "NY",
+  county = "Bronx",
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020
+) %>%
+  mutate(percent = 100 * (value / summary_value))
+head(bx)
+
+bx_income <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = "Bronx",
+  year = 2020,
+  geometry = TRUE
+) 
+head(bx_income)
+
+bx_black <- bx %>%
+  filter(variable == "Black")
+head(bx_black)
+
+tm_shape(bx_hispanic) + 
+  tm_polygons() + 
+  tm_bubbles(size = "value", alpha = 0.5, 
+             col = "navy",
+             title.size = "Hispanic Population in the Bronx - US 2020 Census") + 
+  tm_layout(legend.outside = TRUE,
+            legend.outside.position = "bottom")
+```
+
+```{r}
+mh <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "NY",
+  county = "New York",
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020
+) %>%
+  mutate(percent = 100 * (value / summary_value))
+summary(mh)
+
+#REMOVES NAs
+mh_no_NA <- na.omit(mh)
+summary(mh_no_NA)
+
+mh_income <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = "New York",
+  year = 2020,
+  geometry = TRUE
+) 
+summary(mh_income)
+
+mh_white <- mh %>%
+  filter(variable == "White")
+summary(mh_white)
+mh_black <- mh %>%
+  filter(variable == "Black")
+
+mh_asian <- mh %>%
+  filter(variable == "Asian")
+
+mh_hispanic <- mh %>%
+  filter(variable == "Hispanic")
+
+mh_data <- c(mh_income, mh_white, mh_asian, mh_black, mh_hispanic)
+summary(mh_data)
+
+mh_df <- data.frame(
+  mh_data
+)
+head(bx_df)
+
+corr_data <- mh_df %>%
+  select(c(estimate, percent, percent.1, percent.2, percent.3))
+head(corr_data)
+corr_table <- cor(corr_data, y=  NULL, use = "na.or.complete", method="kendall")
+
+corr_table
+corr_table %>%
+  kbl(align = "c") %>%
+  kable_paper("striped", full_width = F) 
+
+tm_shape(mh_asian) + 
+  tm_polygons() + 
+  tm_bubbles(size = "value", alpha = 0.5, 
+             col = "navy",
+             title.size = "Asian Population in the Manhattan - US 2020 Census") + 
+  tm_layout(legend.outside = TRUE,
+            legend.outside.position = "bottom")
+```
+
+```{r}
+tm_shape(mh) + 
+  tm_facets(by = "variable", scale.factor = 4) + 
+  tm_fill(col = "percent",
+          style = "quantile",
+          n = 6,
+          palette = "Blues",
+          title = "Percent (2020 US Census)",) + 
+  tm_layout(bg.color = "grey", 
+            legend.position = c(0.1, 0.15),
+            panel.label.bg.color = "white")
+
+tm_shape(mh) + 
+  tm_facets(by = "variable", scale.factor = 4) + 
+  tm_fill(col = "percent",
+          style = "quantile",
+          n = 6,
+          palette = "Blues",
+          title = "Population Distribution by Race in the Manhattan (2020 US Census)",) + 
+  tm_layout(bg.color = "lightgrey", 
+            legend.position = c(0.1, 0.15),
+            panel.label.bg.color = "white")
+```
+```{r}
+bk <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "NY",
+  county = "Kings",
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020
+) %>%
+  mutate(percent = 100 * (value / summary_value))
+summary(bk)
+bk <- na.omit(bk)
+
+bk_income <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = "Kings",
+  year = 2020,
+  geometry = TRUE
+) 
+summary(bk_income)
+
+bk_white <- bk %>%
+  filter(variable == "White")
+bk_white <- na.omit(bk_white)
+summary(bk_white)
+
+bk_black <- bk %>%
+  filter(variable == "Black")
+bk_black <- na.omit(bk_black)
+summary(bk_black)
+
+bk_asian <- bk %>%
+  filter(variable == "Asian")
+bk_asian <- na.omit(bk_asian)
+summary(bk_asian)
+
+bk_hispanic <- bk %>%
+  filter(variable == "Hispanic")
+bk_hispanic <- na.omit(bk_hispanic)
+summary(bk_hispanic)
+
+bk_data <- c(bk_income, bk_white, bk_asian, bk_black, bk_hispanic)
+summary(bk_data)
+
+bk_df <- data.frame(
+  bk_data
+)
+summary(bk_df)
+
+bk_df <- na.omit(bk_df)
+summary(bk_df)
+corr_data <- bk_df %>%
+  select(c(estimate, percent, percent.1, percent.2, percent.3))
+head(corr_data)
+corr_table <- cor(corr_data, y=  NULL, use = "na.or.complete", method="kendall")
+
+corr_table
+corr_table %>%
+  kbl(align = "c") %>%
+  kable_paper("striped", full_width = F) 
+
+tm_shape(bk) + 
+  tm_facets(by = "variable", scale.factor = 4) + 
+  tm_fill(col = "percent",
+          style = "quantile",
+          n = 6,
+          palette = "Blues",
+          title = "Population Distribution by Race in the Brooklyn (2020 US Census)",) + 
+  tm_layout(bg.color = "lightgrey", 
+            legend.position = c(0.1, 0.15),
+            panel.label.bg.color = "white")
+
+tm_shape(bk_asian) + 
+  tm_polygons() + 
+  tm_bubbles(size = "value", alpha = 0.5, 
+             col = "navy",
+             title.size = "Asian Population in the Brooklyn - US 2020 Census") + 
+  tm_layout(legend.outside = TRUE,
+            legend.outside.position = "bottom")
+```
+```{r}
+qn <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "NY",
+  county = "Queens",
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020
+) %>%
+  mutate(percent = 100 * (value / summary_value))
+qn <- na.omit(qn)
+summary(qn)
 
 
+qn_income <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY", 
+  county = "Queens",
+  year = 2020,
+  geometry = TRUE
+) 
+qn_income <- na.omit(qn_income)
+summary(qn_income)
 
+qn_white <- qn %>%
+  filter(variable == "White")
+qn_white <- na.omit(qn_white)
+summary(qn_white)
+
+qn_black <- qn %>%
+  filter(variable == "Black")
+qn_black <- na.omit(qn_black)
+summary(qn_black)
+
+qn_asian <- qn %>%
+  filter(variable == "Asian")
+qn_asian <- na.omit(qn_asian)
+summary(qn_asian)
+
+qn_hispanic <- qn %>%
+  filter(variable == "Hispanic")
+qn_hispanic <- na.omit(qn_hispanic)
+summary(bk_hispanic)
+
+qn_data <- c(qn_income, qn_white, qn_asian, qn_black, qn_hispanic)
+summary(bk_data)
+
+qn_df <- data.frame(
+  qn_data
+)
+summary(qn_df)
+
+qn_df <- na.omit(qn_df)
+summary(qn_df)
+corr_data <- qn_df %>%
+  select(c(estimate, percent, percent.1, percent.2, percent.3))
+head(corr_data)
+corr_table <- cor(corr_data, y=  NULL, use = "na.or.complete", method="kendall")
+
+corr_table
+corr_table %>%
+  kbl(align = "c") %>%
+  kable_paper("striped", full_width = F) 
+
+tm_shape(qn) + 
+  tm_facets(by = "variable", scale.factor = 4) + 
+  tm_fill(col = "percent",
+          style = "quantile",
+          n = 6,
+          palette = "Blues",
+          title = "Population Distribution by Race in the Brooklyn (2020 US Census)",) + 
+  tm_layout(bg.color = "lightgrey", 
+            legend.position = c(0.1, 0.15),
+            panel.label.bg.color = "white")
+
+tm_shape(bk_asian) + 
+  tm_polygons() + 
+  tm_bubbles(size = "value", alpha = 0.5, 
+             col = "navy",
+             title.size = "Asian Population in the Brooklyn - US 2020 Census") + 
+  tm_layout(legend.outside = TRUE,
+            legend.outside.position = "bottom")
+```
